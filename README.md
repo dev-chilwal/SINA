@@ -22,6 +22,7 @@ For implemenation we got some information and inspiration of the codes that prov
 
 ```
 Hossein A. Rahmani, Mohammad Aliannejadi, Mitra Baratchi, Fabio Crestani. "Joint Geographical and Temporal Modeling based on Matrix Factorization for Point-of-Interest Recommendation," 42nd European Conference on Information Retrieva (ECIR), Lisbon, Portugal, 2019.
+Github: https://github.com/rahmanidashti/STACP
 ```
 
 
