@@ -42,15 +42,13 @@ def read_training_data():
         if (uid, lid) in training_tuples:
             hour = time.gmtime(ctime).tm_hour
             training_tuples_with_time[(hour, uid, lid)] += 1.0
-            if 6 <= hour <= 9:
+            if 8 <= hour < 18:
                 # working time
                 hour = 0
-            elif hour > 9 or hour < 18:
+            elif hour >= 18 or hour < 8:
                 # leisure time
                 hour = 1
-            else:
-                hour = 2
-
+            
             training_tuples_with_day[(hour, uid, lid)] += 1.0
 
     # Default setting: time is partitioned to 24 hours.
@@ -61,18 +59,17 @@ def read_training_data():
     # Default setting: time is partitioned to WD and WE.
     sparse_training_matrix_WT = sparse.dok_matrix((user_num, poi_num))
     sparse_training_matrix_LT = sparse.dok_matrix((user_num, poi_num))
-    sparse_training_matrix_PT = sparse.dok_matrix((user_num, poi_num))
 
     for (hour, uid, lid), freq in training_tuples_with_day.items():
         if hour == 0:
             sparse_training_matrix_WT[uid, lid] = freq
         elif hour == 1:
             sparse_training_matrix_LT[uid, lid] = freq
-        elif hour == 2:
-            sparse_training_matrix_PT[uid, lid] = freq
+        
 
     print ("Data Loader Finished!")
-    return sparse_training_matrices, sparse_training_matrix, sparse_training_matrix_WT, sparse_training_matrix_LT, sparse_training_matrix_PT, training_tuples
+    return sparse_training_matrices, sparse_training_matrix, sparse_training_matrix_WT, sparse_training_matrix_LT, training_tuples
+
 
 
 def read_ground_truth():
@@ -87,22 +84,20 @@ def read_ground_truth():
 
 
 def main():
-    sparse_training_matrices, sparse_training_matrix, sparse_training_matrix_WT, sparse_training_matrix_LT, sparse_training_matrix_PT, training_tuples = read_training_data()
+    sparse_training_matrices, sparse_training_matrix, sparse_training_matrix_WT, sparse_training_matrix_LT, training_tuples = read_training_data()
+    
     ground_truth = read_ground_truth()
     poi_coos = read_poi_coos()
 
     start_time = time.time()
 
-    PFM.train(sparse_training_matrix, max_iters=1, learning_rate=1e-4)
+    PFM.train(sparse_training_matrix, max_iters=50, learning_rate=1e-6)
     # Multi-Center Weekday
     MGMWT.multi_center_discovering(sparse_training_matrix_WT, poi_coos)
     # Multi-Center Weekend
-    MGMLT.multi_center_discovering(sparse_training_matrix_LT, poi_coos)
-    
-    MGMPT.multi_center_discovering(sparse_training_matrix_PT, poi_coos)
-    
+    MGMLT.multi_center_discovering(sparse_training_matrix_LT, poi_coos)    
 
-    TAMF.train(sparse_training_matrices, max_iters=1, load_sigma=False)
+    TAMF.train(sparse_training_matrices, max_iters=5, load_sigma=False)
 
     elapsed_time = time.time() - start_time
     print("Done. Elapsed time:", elapsed_time, "s")
@@ -125,13 +120,15 @@ def main():
     precision_10, recall_10, nDCG_10, MAP_10 = 0, 0, 0, 0
     precision_15, recall_15, nDCG_15, MAP_15 = 0, 0, 0, 0
     precision_20, recall_20, nDCG_20, MAP_20 = 0, 0, 0, 0
-
+    
+    tp = 0
+    total = 0
     for cnt, uid in enumerate(tqdm(all_uids)):
         if cnt % 10 == 0:
             print(cnt)
         if uid in ground_truth:
             # What is the meaning of the following structure?
-            overall_scores = [PFM.predict(uid, lid) * (MGMWT.predict(uid, lid) + MGMLT.predict(uid, lid) + MGMPT.predict(uid, lid)) * TAMF.predict(uid, lid)
+            overall_scores = [PFM.predict(uid, lid) * (MGMWT.predict(uid, lid) + MGMLT.predict(uid, lid)) * TAMF.predict(uid, lid)
                               if (uid, lid) not in training_tuples else -1
                               for lid in all_lids]
 
@@ -139,7 +136,10 @@ def main():
 
             predicted = list(reversed(overall_scores.argsort()))[:top_k]
             actual = ground_truth[uid]
-
+            
+            act = len(set(actual) & set(predicted))
+            tp += act
+            total += len(predicted)
             # calculate the average of different k
             '''precision_5 = precisionk(actual, predicted[:5])
             recall_5 = recallk(actual, predicted[:5])
@@ -160,7 +160,8 @@ def main():
             recall_20 = recallk(actual, predicted[:20])
             nDCG_20 = ndcgk(actual, predicted[:20])
             MAP_20 = mapk(actual, predicted[:20], 20)'''
-
+            
+            
             rec_list.write('\t'.join([
                 str(cnt),
                 str(uid),
@@ -173,11 +174,15 @@ def main():
             #result_15.write('\t'.join([str(cnt), str(uid), str(precision_15), str(recall_15), str(nDCG_15), str(MAP_15)]) + '\n')
             #result_20.write('\t'.join([str(cnt), str(uid), str(precision_20), str(recall_20), str(nDCG_20), str(MAP_20)]) + '\n')
 
+    print("actual, total ", tp, total)
+    print ("prec ", tp/total)
     print("<< STACP is Finished >>")
+    
 
 if __name__ == '__main__':
-    data_dir = "/home/ubuntu/STACP_foursquare/4square/"
-
+    data_dir = "/home/ubuntu/SINA_4square_2/4squarenew/"
+    #STACP_foursquare
+    #SINA_4square
     size_file = data_dir + "Foursquare_data_size.txt"
     check_in_file = data_dir + "Foursquare_checkins.txt"
     train_file = data_dir + "Foursquare_train.txt"
@@ -187,6 +192,8 @@ if __name__ == '__main__':
 
     user_num, poi_num = open(size_file, 'r').readlines()[0].strip('\n').split()
     user_num, poi_num = int(user_num), int(poi_num)
+    
+    print (user_num, poi_num)
 
     top_k = 20
 
@@ -194,6 +201,6 @@ if __name__ == '__main__':
     MGMWT = MultiGaussianModel(alpha=0.2, theta=0.02, dmax=15)
     MGMLT = MultiGaussianModel(alpha=0.2, theta=0.02, dmax=15)
     MGMPT = MultiGaussianModel(alpha=0.2, theta=0.02, dmax=15)
-    TAMF = TimeAwareMF(K=100, Lambda=1.0, beta=2.0, alpha=2.0, T=24)
+    TAMF = TimeAwareMF(K=50, Lambda=1.0, beta=2.0, alpha=2.0, T=24)
 
     main()
