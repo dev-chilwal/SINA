@@ -6,7 +6,8 @@
 - Htet Naing Aung 13385531
 
 ## Environment Settings
-- Python version:  '2.7'
+- Python version:  '3.7' - Content and User based CF
+- Python version:  '2.7' - for STACP only
 - Install the required libraries
 
 ## To run the code
