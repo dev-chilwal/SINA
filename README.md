@@ -1,9 +1,9 @@
 # 42913 Social and Information Network Analysis - Autumn 2020 - Group Project
 
 # Members
-- Adithya Krishna
-- Devendra Chilwal
-- Htet Naing Aung
+- Adithya Krishna 13396080
+- Devendra Chilwal 13387067
+- Htet Naing Aung 13385531
 
 ## Environment Settings
 - Python version:  '2.7'
