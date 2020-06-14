@@ -10,7 +10,7 @@
 - Install the required libraries
 
 ## To run the code
-You need just run the `recommendation.py`
+Execute `recommendation.py` 
 
 The `TimeAwareMF.py` lib is implemented in `Python 2`. Therefore you should run the model with `Python 2`.
 
