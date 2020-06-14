@@ -16,25 +16,25 @@ class TimeAwareMF(object):
 
     def save_model(self, path):
         ctime = time.time()
-        print(("Saving U and L...",))
+        print("Saving U and L...",)
         for i in range(self.T):
             np.save(path + "U" + str(i), self.U[i])
         np.save(path + "L", self.L)
-        print(("Done. Elapsed time:", time.time() - ctime, "s"))
+        print("Done. Elapsed time:", time.time() - ctime, "s")
 
     def load_model(self, path):
         ctime = time.time()
-        print(("Loading U and L...",))
+        print("Loading U and L...",)
         self.U = [np.load(path + "U%d.npy" % i) for i in range(self.T)]
         self.L = np.load(path + "L.npy")
         self.LT = self.L.T
-        print(("Done. Elapsed time:", time.time() - ctime, "s"))
+        print("Done. Elapsed time:", time.time() - ctime, "s")
 
     def load_sigma(self, path):
         ctime = time.time()
-        print(("Loading sigma...",))
+        print("Loading sigma...",)
         sigma = np.load(path + "sigma.npy")
-        print(("Done. Elapsed time:", time.time() - ctime, "s"))
+        print("Done. Elapsed time:", time.time() - ctime, "s")
         return sigma
 
     def get_t_1(self, t):
@@ -50,14 +50,14 @@ class TimeAwareMF(object):
 
     def init_sigma(self, C, M, T):
         ctime = time.time()
-        print(("Initializing sigma...",))
+        print("Initializing sigma...",)
         sigma = [np.zeros(M) for _ in range(T)]
         for t in range(T):
             C[t] = C[t].tocsr()
             for i in range(M):
                 sigma[t][i] = self.get_phi(C, i, t)
         sigma = [sparse.dia_matrix(sigma_t) for sigma_t in sigma]
-        print(("Done. Elapsed time:", time.time() - ctime, "s"))
+        print("Done. Elapsed time:", time.time() - ctime, "s")
         return sigma
 
     def train(self, sparse_check_in_matrices, max_iters=100, load_sigma=False):
@@ -80,7 +80,7 @@ class TimeAwareMF(object):
         L = np.random.rand(N, K)
 
         C = [Ct.tocoo() for Ct in C]
-        entry_index = [list(zip(C[t].row, C[t].col)) for t in range(T)]
+        entry_index = [zip(C[t].row, C[t].col) for t in range(T)]
 
         C_est = [Ct for Ct in C]
         C = [Ct.tocsr() for Ct in C]
@@ -108,7 +108,7 @@ class TimeAwareMF(object):
                 C_dok = C[t].todok()
                 for i, j in entry_index[t]:
                     error += (C_est_dok[i, j] - C_dok[i, j]) * (C_est_dok[i, j] - C_dok[i, j])
-            print(('Iteration:', iters, error))
+            print('Iteration:', iters, error)
         self.U, self.L = U, L
         self.LT = L.T
 
